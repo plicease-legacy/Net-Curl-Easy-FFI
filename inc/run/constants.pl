@@ -24,6 +24,9 @@ my @symbols = qw(
   CURLOPT_COOKIEFILE
   CURLOPT_FILE
   CURLOPT_HEADERDATA
+  CURLOPT_WRITEFUNCTION
+  CURLOPT_WRITEDATA
+  CURLOPT_VERBOSE
 );
 
 my $cache = eval { LoadFile("config.yml") } || {};
