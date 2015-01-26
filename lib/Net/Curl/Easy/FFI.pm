@@ -2,11 +2,14 @@ package Net::Curl::Easy::FFI;
 
 use strict;
 use warnings;
+use Net::Curl::Easy::FFI::constants;
 use FFI::CheckLib qw( find_lib_or_die );
 use FFI::Platypus::Declare
-  qw( void string opaque int ),
+  qw( void string opaque int long ),
+  [ 'off_t' => 'curl_off_t' ], # TODO: check on that
   [ 'int *' => 'int_p' ],
   [ opaque => 'CURL' ];
+use Carp qw( croak );
 use constant astring => 'astring';
 use base qw( Exporter);
 
@@ -15,6 +18,12 @@ use base qw( Exporter);
 # VERSION
 
 =head1 SYNOPSIS
+
+download to stdout:
+
+# EXAMPLE: example/simple.pl
+
+escape/unescape URLs:
 
  use Net::Curl::Easy::FFI;
  
@@ -116,22 +125,47 @@ some of its important components (like OpenSSL).
 attach curl_easy_init     => []                      => CURL    => '';
 attach curl_easy_cleanup  => [CURL]                  => void    => '$';
 attach curl_easy_escape   => [CURL,string,int]       => astring => '$$;$';
+attach curl_easy_perform  => [CURL]                  => int     => '$';
+attach curl_easy_strerror => [int]                   => string  => '$';
 attach [curl_easy_unescape => 
        '_easy_unescape' ] => [CURL,string,int,int_p] => opaque;
 attach [curl_free =>
        '_free' ]          => [opaque]                => void    => '$';
 attach curl_version       => []                      => string  => '';
 
+attach [curl_easy_setopt => '_setopt_long'] =>
+       [ CURL, int, long ] => int;
+attach [curl_easy_setopt => '_setopt_string'] =>
+       [ CURL, int, string ] => int;
+attach [curl_easy_setopt => '_setopt_opaque'] =>
+       [ CURL, int, opaque ] => int;
+attach [curl_easy_setopt => '_setopt_off_t'] =>
+       [ CURL, int, curl_off_t ] => int;
+
 sub curl_easy_unescape ($$;$)
 {
   my $len;
   my $ptr = _easy_unescape($_[0], $_[1], $_[2], \$len);
   return unless defined $ptr;
-  $DB::single = 1;
   unpack 'P'.$len, pack 'L!', $ptr;
 }
 
-our @EXPORT = grep /^(curl_easy|CURLOPT_)/, keys %Net::Curl::Easy::FFI::;
+sub curl_easy_setopt ($$$)
+{
+  my $opttype = $_[1] - $_[1] % CURLOPTTYPE_OBJECTPOINT;
+  if($opttype == CURLOPTTYPE_LONG)
+  { goto &_setopt_long }
+  elsif($opttype == CURLOPTTYPE_OBJECTPOINT)
+  { goto &_setopt_string }
+  elsif($opttype == CURLOPTTYPE_FUNCTIONPOINT)
+  { goto &_setopt_opaque }
+  elsif($opttype == CURLOPTTYPE_OFF_T)
+  { goto &_setopt_off_t }
+  else
+  { croak "invalid option: $_[1]" }
+}
+
+our @EXPORT = grep /^(curl_easy|CURL)/, keys %Net::Curl::Easy::FFI::;
 push @EXPORT, 'curl_version';
 
 1;

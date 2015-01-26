@@ -1,2 +1,4 @@
 /Net-Curl-Easy-FFI-*
 /.build
+/config.log
+/config.yml
