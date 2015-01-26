@@ -31,6 +31,14 @@ my @symbols = qw(
 
 my $cache = eval { LoadFile("config.yml") } || {};
 
+foreach my $symbol (@symbols)
+{
+  next if defined $cache->{$symbol};
+  next unless $ac->check_decl($symbol, { prologue => $prologue });
+  my $value = $ac->compute_int($symbol, { prologue => $prologue });
+  #print $fh "use constant $symbol => $value;\n";
+}
+
 mkdir 'lib/Net/Curl/Easy/FFI'
   unless -d 'lib/Net/Curl/Easy/FFI';
 
@@ -42,18 +50,10 @@ package
 use strict; use warnings;
 EOF
 
-while(my($symbol,$value) = each %$cache)
+foreach my $symbol (sort { $cache->{$a} <=> $cache->{$b} || $a cmp $b } keys %$cache)
 {
-  print $fh "use constant $symbol => $value;\n";
-}
-
-foreach my $symbol (@symbols)
-{
-  next if defined $cache->{$symbol};
-  next unless $ac->check_decl($symbol, { prologue => $prologue });
-  my $value = $ac->compute_int($symbol, { prologue => $prologue });
-  print $fh "use constant $symbol => $value;\n";
-  $cache->{$symbol} = $value;
+  my $value = $cache->{$symbol};
+  printf $fh "use constant %-30s => %8d;\n", $symbol, $value;
 }
 
 print $fh <<EOF;

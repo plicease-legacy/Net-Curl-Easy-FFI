@@ -36,7 +36,6 @@ escape/unescape URLs:
  print "$unescaped\n"; # <foo>
  
  curl_easy_cleanup $curl;
- 
 
 =head1 DESCRIPTION
 
@@ -45,6 +44,10 @@ different from the like named L<Net::Curl::Easy> in that it is
 implemented using FFI (See L<FFI::Platypus> for details) instead of XS 
 and that it does not provide an object oriented interface, instead 
 preferring to more closely mirror the libcurl interface.
+
+By default this module exports all of the functions and constants that 
+it implements.  You can explicitly export just the symbols that you 
+want.
 
 =cut
 
@@ -156,7 +159,20 @@ sub curl_easy_setopt ($$$)
   if($opttype == CURLOPTTYPE_LONG)
   { goto &_setopt_long }
   elsif($opttype == CURLOPTTYPE_OBJECTPOINT)
-  { goto &_setopt_string }
+  {
+    # OBJECTPOINT is used for both strings and
+    # pointery stuff, so if you really want a
+    # pointery thing, pass in a reference to
+    # an opaque pointer.
+    if(ref $_[2])
+    {
+      _setopt_opaque($_[0], $_[1], ${$_[2]});
+    }
+    else
+    {
+      goto &_setopt_string
+    }
+  }
   elsif($opttype == CURLOPTTYPE_FUNCTIONPOINT)
   { goto &_setopt_opaque }
   elsif($opttype == CURLOPTTYPE_OFF_T)

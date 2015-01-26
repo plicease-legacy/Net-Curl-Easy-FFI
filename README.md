@@ -41,6 +41,10 @@ implemented using FFI (See [FFI::Platypus](https://metacpan.org/pod/FFI::Platypu
 and that it does not provide an object oriented interface, instead 
 preferring to more closely mirror the libcurl interface.
 
+By default this module exports all of the functions and constants that 
+it implements.  You can explicitly export just the symbols that you 
+want.
+
 # FUNCTIONS
 
 ## curl\_easy\_init
